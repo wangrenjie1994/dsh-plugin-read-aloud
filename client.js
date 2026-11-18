@@ -78,6 +78,14 @@ window.__ModuleLoader__.load({
       return parts
     }
 
+    // Diagrams, box-drawing rules and other symbol-only lines have nothing to say
+    // and make the speech service fail, so they never reach it.
+    const SPEAKABLE = /[\p{L}\p{N}]/u
+
+    function speakable(text) {
+      return SPEAKABLE.test(String(text))
+    }
+
     async function serverReady() {
       const now = Date.now()
       if (now < healthUntil) return healthResult
@@ -112,7 +120,7 @@ window.__ModuleLoader__.load({
     function speakBrowser(text, rate) {
       const synth = synthesis()
       if (!synth || typeof window.SpeechSynthesisUtterance !== 'function') return
-      const parts = chunk(text, 180)
+      const parts = chunk(text, 180).filter(part => speakable(part))
       let index = 0
       const next = () => {
         if (index >= parts.length) {
@@ -148,31 +156,45 @@ window.__ModuleLoader__.load({
         }
         if (cut > 0) parts.splice(0, 1, head.slice(0, cut), head.slice(cut))
       }
-      return parts.filter(part => part.trim() !== '')
+      return parts.filter(part => part.trim() !== '' && speakable(part))
+    }
+
+    function playPrepared(audio, current) {
+      current.audio = audio
+      return new Promise((resolve, reject) => {
+        current.cancel = () => resolve(false)
+        audio.onended = () => resolve(true)
+        audio.onerror = () => reject(new Error('audio playback failed'))
+        audio.play().catch(reject)
+      })
     }
 
     async function speakServer(text, options, current) {
       const parts = partsForStreaming(text)
+      if (parts.length === 0) return
       const make = part => {
         const audio = new Audio(audioUrl(part, options))
         audio.preload = 'auto'
+        audio.load()
         return audio
       }
       let pending = make(parts[0])
-      pending.load()
       for (let index = 0; index < parts.length; index += 1) {
         if (current.cancelled) return
         const audio = pending
-        const following = index + 1 < parts.length ? make(parts[index + 1]) : null
-        if (following !== null) following.load()
-        pending = following
-        current.audio = audio
-        const finished = await new Promise((resolve, reject) => {
-          current.cancel = () => resolve(false)
-          audio.onended = () => resolve(true)
-          audio.onerror = () => reject(new Error('audio playback failed'))
-          audio.play().catch(reject)
-        })
+        pending = index + 1 < parts.length ? make(parts[index + 1]) : null
+        let finished = false
+        try {
+          finished = await playPrepared(audio, current)
+        } catch {
+          // One retry, then hand only the remaining pieces to the browser engine.
+          try {
+            finished = await playPrepared(make(parts[index]), current)
+          } catch (error) {
+            current.remaining = parts.slice(index + 1).join('\n')
+            throw error
+          }
+        }
         if (!finished) return
         current.audio = null
         current.cancel = null
@@ -196,9 +218,10 @@ window.__ModuleLoader__.load({
         }
       } catch (error) {
         if (!current.cancelled) {
-          console.warn('[read-aloud] 神经网络语音失败，改用浏览器内置语音', error)
+          console.warn('[read-aloud] 神经网络语音失败，改用浏览器内置语音继续朗读余下内容', error)
           publish({ engine: 'browser' })
-          speakBrowser(String(text), options.rate)
+          const rest = typeof current.remaining === 'string' ? current.remaining : ''
+          if (rest.trim() !== '') speakBrowser(rest, options.rate)
         }
       } finally {
         if (run === current) {

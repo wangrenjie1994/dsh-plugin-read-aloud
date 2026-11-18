@@ -9,6 +9,7 @@ import argparse
 import asyncio
 import json
 import queue
+import re
 import sys
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -30,6 +31,9 @@ VOICES = [
 ]
 DEFAULT_VOICE = VOICES[0][0]
 MAX_TEXT = 4000
+# Box-drawing rules, ASCII art and pure punctuation carry nothing to say and make
+# the synthesizer fail, so they are refused before any synthesis work starts.
+SPEAKABLE = re.compile(r"[^\W_]", re.UNICODE)
 
 
 async def audio_chunks(text, voice, rate, volume, pitch):
@@ -85,6 +89,9 @@ class Handler(BaseHTTPRequestHandler):
         text = query.get("text", [""])[0].strip()
         if not text:
             self._json(400, {"error": "text is required"})
+            return
+        if SPEAKABLE.search(text) is None:
+            self._json(400, {"error": "text has no speakable characters"})
             return
         voice = query.get("voice", [DEFAULT_VOICE])[0]
         if voice not in {v for v, _ in VOICES}:
