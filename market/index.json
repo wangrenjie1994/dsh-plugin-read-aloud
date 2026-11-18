@@ -20,10 +20,15 @@
         "zh": "用微软神经网络语音（晓晓、云希等）朗读 DSH 的回复：本地 edge-tts 合成、同源流式播放、可切音色与语速，服务不可用时退回浏览器语音。"
       },
       "icon": "icons/read-aloud.svg",
+      "author": "wangrenjie1994",
+      "homepage": "https://github.com/wangrenjie1994/dsh-plugin-read-aloud#readme",
+      "repository": {
+        "url": "https://github.com/wangrenjie1994/dsh-plugin-read-aloud"
+      },
       "versions": [
         {
           "version": "0.1.0",
-          "publishTimestamp": 1795000982,
+          "publishTimestamp": 1794973754,
           "source": {
             "type": "npm"
           },
