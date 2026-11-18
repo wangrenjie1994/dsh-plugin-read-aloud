@@ -51,6 +51,7 @@ window.__ModuleLoader__.load({
     let run = null
     let healthUntil = 0
     let healthResult = false
+    let panelRequested = false
 
     function synthesis() {
       return typeof window === 'undefined' ? undefined : window.speechSynthesis
@@ -420,11 +421,16 @@ window.__ModuleLoader__.load({
           const track = event => {
             const element = event.target instanceof Element ? event.target : null
             lastSource = element === null ? null : element.closest(SOURCE)
+            // Plain right-click keeps the browser menu. Shift adds the reading
+            // gesture, and only then is that menu replaced by the action panel.
+            panelRequested = event.shiftKey === true
+            if (panelRequested) event.preventDefault()
           }
           document.addEventListener('contextmenu', track, true)
           return () => {
             document.removeEventListener('contextmenu', track, true)
             lastSource = null
+            panelRequested = false
             stop()
           }
         }, 'read-aloud: reply source tracking')
@@ -436,8 +442,7 @@ window.__ModuleLoader__.load({
               request.open()
               return
             }
-            // Right-click: take the gesture over, otherwise the native copy menu
-            // opens on top of the action panel.
+            if (!panelRequested) return
             request.preventDefault()
             request.open()
           },

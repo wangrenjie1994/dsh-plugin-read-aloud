@@ -8,7 +8,7 @@ Select text in a finished reply to reveal a floating action bar, or right-click 
 
 ## What you get
 
-Selecting text in a reply, or right-clicking it, opens a two-row panel:
+Selecting text in a reply, or **Shift + right-click** anywhere in it, opens a two-row panel:
 
 | | | |
 |---|---|---|
@@ -17,7 +17,8 @@ Selecting text in a reply, or right-clicking it, opens a two-row panel:
 
 - **Read from here** starts at the selection and continues to the end of the reply, so earlier text is never repeated.
 - **Voice** cycles 晓晓 / 晓伊 / 云希 / 云健 / 云扬 / 晓北 and shows **Built-in voice** when the browser engine is in use.
-- **Copy** replaces the native context menu, which is suppressed on right-click because it would cover the panel; `Ctrl+C` still works.
+- **Copy** duplicates the selection (or the whole reply without one) in a single click.
+- Plain right-click is left alone — the browser's own menu, with copy, translate and inspect, still works; only Shift + right-click is taken over, so the panel can never collide with that menu.
 - The first button toggles to **Stop** while speaking.
 
 Long text is split into ≤600-character pieces: the first piece is cut to a short sentence for a fast start, and the next piece is preloaded while the current one plays.
