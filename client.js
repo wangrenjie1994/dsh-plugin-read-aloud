@@ -24,20 +24,24 @@ window.__ModuleLoader__.load({
 
     const zh = {
       'readAloud.selection': '朗读选中',
+      'readAloud.fromHere': '从当前读',
       'readAloud.whole': '朗读整条',
       'readAloud.stop': '停止朗读',
       'readAloud.rate': '语速',
       'readAloud.voice': '音色',
       'readAloud.builtin': '内置语音',
+      'readAloud.copy': '复制',
     }
 
     const en = {
       'readAloud.selection': 'Read selection',
+      'readAloud.fromHere': 'Read from here',
       'readAloud.whole': 'Read entire reply',
       'readAloud.stop': 'Stop reading',
       'readAloud.rate': 'Speed',
       'readAloud.voice': 'Voice',
       'readAloud.builtin': 'Built-in voice',
+      'readAloud.copy': 'Copy',
     }
 
     const listeners = new Set()
@@ -284,21 +288,52 @@ window.__ModuleLoader__.load({
       return text === '' ? null : text
     }
 
-    const pill = {
-      padding: '5px 10px',
-      border: 'none',
-      borderRadius: '999px',
+    /** Everything from the start of the selection to the end of the reply. */
+    function textFromSelection() {
+      const selection = typeof document === 'undefined' ? null : document.getSelection()
+      if (selection === null || selection.rangeCount === 0) return wholeReplyText()
+      const range = selection.getRangeAt(0)
+      const source = sourceElement()
+      if (source === null || !source.contains(range.startContainer)) return range.toString()
+      try {
+        const tail = document.createRange()
+        tail.selectNodeContents(source)
+        tail.setStart(range.startContainer, range.startOffset)
+        return tail.toString()
+      } catch {
+        return range.toString()
+      }
+    }
+
+    const panel = {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+      gap: '4px',
+      padding: '6px',
+      borderRadius: '12px',
       background: 'var(--dsw-alias-button-floating-fill, rgba(127,127,127,0.12))',
       boxShadow: 'var(--dsw-elevation-panel, 0 2px 8px rgba(0,0,0,0.18))',
       color: 'var(--dsw-alias-label-primary, inherit)',
-      font: 'inherit',
-      fontSize: '13px',
-      lineHeight: '1.3',
-      cursor: 'pointer',
-      whiteSpace: 'nowrap',
+      fontSize: '12px',
+      lineHeight: '1.2',
+      maxWidth: '264px',
     }
 
-    function ReadAloudAction({ dismiss, readText, t }) {
+    const cell = {
+      border: 'none',
+      background: 'transparent',
+      color: 'inherit',
+      font: 'inherit',
+      padding: '5px 6px',
+      borderRadius: '8px',
+      cursor: 'pointer',
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      textAlign: 'center',
+    }
+
+    function ReadAloudAction({ readText, t }) {
       const [state, setState] = useState({ speaking, engine })
       const [rate, setRate] = useState(() => Number(stored(RATE_KEY, '1', RATES.map(String))))
       const [voice, setVoice] = useState(() => stored(VOICE_KEY, VOICES[0].id, VOICES.map(v => v.id)))
@@ -315,25 +350,16 @@ window.__ModuleLoader__.load({
 
       const options = () => ({ rate, voice })
       const active = state.speaking
+      const selected = readText()
 
-      const toggle = event => {
+      const start = getText => event => {
         event.preventDefault()
         event.stopPropagation()
         if (active) {
           stop()
           return
         }
-        speak(readText(), options())
-      }
-
-      const whole = event => {
-        event.preventDefault()
-        event.stopPropagation()
-        if (active) {
-          stop()
-          return
-        }
-        speak(wholeReplyText(), options())
+        speak(getText(), options())
       }
 
       const speed = event => {
@@ -353,42 +379,36 @@ window.__ModuleLoader__.load({
         remember(VOICE_KEY, next)
       }
 
-      const label = active ? t('readAloud.stop') : t('readAloud.selection')
+      const copy = event => {
+        event.preventDefault()
+        event.stopPropagation()
+        const text = selected === null ? (wholeReplyText() ?? '') : selected
+        if (text !== '' && typeof navigator !== 'undefined' && navigator.clipboard) {
+          navigator.clipboard.writeText(text).catch(() => {})
+        }
+      }
+
       const chosen = (VOICES.find(item => item.id === voice) || VOICES[0]).label
       const voiceLabel = state.engine === 'browser' ? t('readAloud.builtin') : chosen
-      return h('div', { style: { display: 'flex', alignItems: 'center', gap: '4px' } },
-        h('button', {
-          type: 'button',
-          style: pill,
-          title: label,
-          'aria-label': label,
-          onPointerDown: event => event.preventDefault(),
-          onClick: toggle,
-        }, (active ? '⏹ ' : '🔊 ') + label),
-        h('button', {
-          type: 'button',
-          style: pill,
-          title: t('readAloud.whole'),
-          'aria-label': t('readAloud.whole'),
-          onPointerDown: event => event.preventDefault(),
-          onClick: whole,
-        }, '📄 ' + t('readAloud.whole')),
-        h('button', {
-          type: 'button',
-          style: pill,
-          title: t('readAloud.voice'),
-          'aria-label': t('readAloud.voice'),
-          onPointerDown: event => event.preventDefault(),
-          onClick: switchVoice,
-        }, '🗣 ' + voiceLabel),
-        h('button', {
-          type: 'button',
-          style: pill,
-          title: t('readAloud.rate'),
-          'aria-label': t('readAloud.rate'),
-          onPointerDown: event => event.preventDefault(),
-          onClick: speed,
-        }, rate + '×'),
+      const button = (text, title, onClick, extra) => h('button', {
+        type: 'button',
+        style: extra === undefined ? cell : { ...cell, ...extra },
+        title,
+        'aria-label': title,
+        onPointerDown: event => event.preventDefault(),
+        onClick,
+      }, text)
+
+      return h('div', { style: panel },
+        button(active ? '⏹ ' + t('readAloud.stop') : '🔊 ' + t('readAloud.selection'),
+          active ? t('readAloud.stop') : t('readAloud.selection'),
+          start(() => selected),
+          active ? { background: 'var(--dsw-alias-button-floating-hover, rgba(127,127,127,0.22))' } : undefined),
+        button('▶ ' + t('readAloud.fromHere'), t('readAloud.fromHere'), start(textFromSelection)),
+        button('📄 ' + t('readAloud.whole'), t('readAloud.whole'), start(wholeReplyText)),
+        button('🗣 ' + voiceLabel, t('readAloud.voice'), switchVoice),
+        button(rate + '×', t('readAloud.rate'), speed),
+        button('⧉ ' + t('readAloud.copy'), t('readAloud.copy'), copy),
       )
     }
 
@@ -416,6 +436,9 @@ window.__ModuleLoader__.load({
               request.open()
               return
             }
+            // Right-click: take the gesture over, otherwise the native copy menu
+            // opens on top of the action panel.
+            request.preventDefault()
             request.open()
           },
         }), 'read-aloud: text interaction')

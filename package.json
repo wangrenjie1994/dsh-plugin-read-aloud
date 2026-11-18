@@ -1,7 +1,7 @@
 {
   "name": "dsh-plugin-read-aloud",
-  "version": "0.1.3",
-  "description": "Read DSH replies aloud with Microsoft neural voices (Xiaoxiao, Yunxi, …) through a local edge-tts service, with same-origin streaming playback and browser speech as fallback.",
+  "version": "0.2.1",
+  "description": "Read DSH replies aloud with Microsoft neural voices (Xiaoxiao, Yunxi, etc.) through a local edge-tts service, with same-origin streaming playback and browser speech as fallback.",
   "type": "module",
   "license": "MIT",
   "author": "wangrenjie1994",

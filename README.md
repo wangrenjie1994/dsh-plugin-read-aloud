@@ -8,11 +8,17 @@ Select text in a finished reply to reveal a floating action bar, or right-click 
 
 ## What you get
 
-- **🔊 Read selection** — the selected paragraph, nothing else.
-- **📄 Read entire reply** — the whole reply containing the selection or the right-click.
-- **🗣 Voice** — cycles 晓晓 / 晓伊 / 云希 / 云健 / 云扬 / 晓北. Shows the chosen name when neural speech is live, and **Built-in voice** when it fell back to the browser engine.
-- **1× Speed** — 0.75× / 1× / 1.25× / 1.5×, remembered in the browser.
-- **⏹ Stop** — the first button toggles while speaking.
+Selecting text in a reply, or right-clicking it, opens a two-row panel:
+
+| | | |
+|---|---|---|
+| 🔊 Read selection | ▶ Read from here | 📄 Read entire reply |
+| 🗣 Voice | 1× Speed | ⧉ Copy |
+
+- **Read from here** starts at the selection and continues to the end of the reply, so earlier text is never repeated.
+- **Voice** cycles 晓晓 / 晓伊 / 云希 / 云健 / 云扬 / 晓北 and shows **Built-in voice** when the browser engine is in use.
+- **Copy** replaces the native context menu, which is suppressed on right-click because it would cover the panel; `Ctrl+C` still works.
+- The first button toggles to **Stop** while speaking.
 
 Long text is split into ≤600-character pieces: the first piece is cut to a short sentence for a fast start, and the next piece is preloaded while the current one plays.
 
