@@ -1,0 +1,47 @@
+{
+  "name": "dsh-plugin-read-aloud",
+  "version": "0.1.0",
+  "description": "Read DSH replies aloud with Microsoft neural voices (Xiaoxiao, Yunxi, …) through a local edge-tts service, with same-origin streaming playback and browser speech as fallback.",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "tts",
+    "text-to-speech",
+    "read-aloud",
+    "speech",
+    "edge-tts"
+  ],
+  "engines": {
+    "dsh": ">=0.2.2-rc.3"
+  },
+  "scripts": {
+    "prepack": "node -e \"require('node:fs').rmSync('server/__pycache__',{recursive:true,force:true})\""
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "server",
+    "docs",
+    "icon.svg",
+    "README.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": ["@deepseek-ai/dsh-client-ui-conversation"]
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Read aloud",
+    "description": "Reads selected chat text or a whole reply with Microsoft neural voices (Xiaoxiao, Yunxi, …), with voice and speed switching and browser speech as fallback.",
+    "detail": "docs/DETAIL.md"
+  }
+}

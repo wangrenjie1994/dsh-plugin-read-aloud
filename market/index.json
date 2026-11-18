@@ -1,0 +1,37 @@
+{
+  "format": 1,
+  "title": {
+    "en": "DSH community plugins",
+    "zh": "DSH 社区插件"
+  },
+  "description": {
+    "en": "Community plugins for DeepSeek Harness.",
+    "zh": "DeepSeek Harness 的社区插件。"
+  },
+  "plugins": [
+    {
+      "name": "dsh-plugin-read-aloud",
+      "title": {
+        "en": "Read aloud",
+        "zh": "朗读"
+      },
+      "description": {
+        "en": "Read DSH replies aloud with Microsoft neural voices (Xiaoxiao, Yunxi, …) through a local edge-tts service; same-origin streaming playback, voice and speed switching, browser speech as fallback.",
+        "zh": "用微软神经网络语音（晓晓、云希等）朗读 DSH 的回复：本地 edge-tts 合成、同源流式播放、可切音色与语速，服务不可用时退回浏览器语音。"
+      },
+      "icon": "icons/read-aloud.svg",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "publishTimestamp": 1795000982,
+          "source": {
+            "type": "npm"
+          },
+          "engines": {
+            "dsh": ">=0.2.2-rc.3"
+          }
+        }
+      ]
+    }
+  ]
+}

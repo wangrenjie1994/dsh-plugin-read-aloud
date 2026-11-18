@@ -1,0 +1,7 @@
+node_modules/
+__pycache__/
+*.pyc
+*.tgz
+.npmrc
+.DS_Store
+.plugin-market-cache/
