@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-read-aloud",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Read DSH replies aloud with Microsoft neural voices through a local edge-tts service: read the selection, from here to the end, or the whole reply, with voice and speed switching. Shift + right-click opens the panel; unreadable text is skipped.",
   "type": "module",
   "license": "MIT",

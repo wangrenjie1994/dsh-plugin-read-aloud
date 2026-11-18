@@ -177,50 +177,98 @@ window.__ModuleLoader__.load({
       return parts.filter(part => speakable(part))
     }
 
-    function playPrepared(audio, current) {
+    let player = null
+
+    /** One media element for every piece: a reused element keeps playback allowed
+     *  after the gesture, and it can never sit in a half-preloaded state. */
+    function playerElement() {
+      if (player === null || !player.isConnected) {
+        player = new Audio()
+        player.preload = 'auto'
+        player.style.display = 'none'
+        if (typeof document !== 'undefined' && document.body !== null) document.body.appendChild(player)
+      }
+      return player
+    }
+
+    async function fetchPiece(url) {
+      const response = await fetch(url, { cache: 'no-store' })
+      if (!response.ok) throw new Error('speech service returned ' + response.status)
+      const blob = await response.blob()
+      if (blob.size === 0) throw new Error('empty audio')
+      return URL.createObjectURL(blob)
+    }
+
+    function playBlob(objectUrl, current) {
+      const audio = playerElement()
       current.audio = audio
       return new Promise((resolve, reject) => {
-        current.cancel = () => resolve(false)
-        audio.onended = () => resolve(true)
-        audio.onerror = () => reject(new Error('audio playback failed'))
-        audio.play().catch(reject)
+        const cleanup = () => {
+          audio.onended = null
+          audio.onerror = null
+          current.cancel = null
+        }
+        current.cancel = () => {
+          try {
+            audio.pause()
+          } catch {
+            /* already detached */
+          }
+          cleanup()
+          resolve(false)
+        }
+        audio.onended = () => {
+          cleanup()
+          resolve(true)
+        }
+        audio.onerror = () => {
+          cleanup()
+          reject(new Error('audio playback failed'))
+        }
+        audio.src = objectUrl
+        audio.play().catch(error => {
+          cleanup()
+          reject(error)
+        })
       })
     }
 
     async function speakServer(text, options, current) {
       const parts = partsForStreaming(text)
       if (parts.length === 0) return
-      const make = part => {
-        const audio = new Audio(audioUrl(part, options))
-        audio.preload = 'auto'
-        audio.load()
-        return audio
-      }
-      let pending = make(parts[0])
+      let skipped = 0
+      let next = fetchPiece(audioUrl(parts[0], options))
       for (let index = 0; index < parts.length; index += 1) {
-        if (current.cancelled) return
-        const audio = pending
-        pending = index + 1 < parts.length ? make(parts[index + 1]) : null
-        let finished = false
-        try {
-          finished = await playPrepared(audio, current)
-        } catch {
-          // One retry for a piece that never produced sound, then skip it: the
-          // reader moves on instead of replaying anything already heard.
+        if (current.cancelled) {
+          next.catch(() => {})
+          return
+        }
+        let job = next
+        next = index + 1 < parts.length ? fetchPiece(audioUrl(parts[index + 1], options)) : null
+        if (next !== null) next.catch(() => {})
+        let played = false
+        for (let attempt = 0; attempt < 2 && !played; attempt += 1) {
+          let objectUrl = null
           try {
-            finished = await playPrepared(make(parts[index]), current)
+            objectUrl = await job
+            if (current.cancelled) return
+            played = await playBlob(objectUrl, current)
           } catch (error) {
-            console.warn('[read-aloud] 跳过读不出来的片段', parts[index].slice(0, 40), error)
-            current.audio = null
-            current.cancel = null
-            continue
+            console.warn(`[read-aloud] 第 ${index + 1}/${parts.length} 段播放失败`, error)
+            job = fetchPiece(audioUrl(parts[index], options))
+          } finally {
+            if (objectUrl !== null) URL.revokeObjectURL(objectUrl)
           }
         }
-        if (!finished) return
+        if (!played) {
+          skipped += 1
+          console.warn(`[read-aloud] 跳过第 ${index + 1} 段`)
+          continue
+        }
         current.spoken = true
         current.audio = null
-        current.cancel = null
       }
+      if (skipped > 0) console.warn(`[read-aloud] 共跳过 ${skipped} 段读不出来的内容`)
     }
 
     async function speak(text, options) {
@@ -243,10 +291,13 @@ window.__ModuleLoader__.load({
       } catch (error) {
         // Never restart a message that already started: only an untouched message
         // may still fall back, and it falls back once for the whole text.
-        if (!current.cancelled && !current.spoken) {
+        if (current.cancelled) return
+        if (!current.spoken) {
           console.warn('[read-aloud] 神经网络语音不可用，改用浏览器内置语音', error)
           publish({ engine: 'browser' })
           speakBrowser(clean, options.rate)
+        } else {
+          console.warn('[read-aloud] 朗读中断，已读内容不会重读', error)
         }
       } finally {
         if (run === current) {
@@ -432,6 +483,10 @@ window.__ModuleLoader__.load({
             lastSource = null
             panelRequested = false
             stop()
+            if (player !== null) {
+              player.remove()
+              player = null
+            }
           }
         }, 'read-aloud: reply source tracking')
         ctx.effect(() => ctx.uiConversation.interactions.register({
