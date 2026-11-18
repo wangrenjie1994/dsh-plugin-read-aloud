@@ -78,12 +78,25 @@ window.__ModuleLoader__.load({
       return parts
     }
 
-    // Diagrams, box-drawing rules and other symbol-only lines have nothing to say
-    // and make the speech service fail, so they never reach it.
+    // Only letters, digits, whitespace and ordinary punctuation can be spoken.
+    // Box drawing, arrows, emoji, symbols and control characters cannot, so they
+    // are replaced before anything reaches a speech engine.
+    const UNSPEAKABLE = /[^\p{L}\p{N}\s.,!?;:'"()[\]{}\/\-_+=%&@#$*<>~|^，。！？；：、（）《》「」『』【】…—～·“”‘’]/gu
     const SPEAKABLE = /[\p{L}\p{N}]/u
 
     function speakable(text) {
       return SPEAKABLE.test(String(text))
+    }
+
+    /** Drop every character a speech engine cannot voice and every line left empty. */
+    function sanitize(text) {
+      return String(text)
+        .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\uFFFD]/g, '')
+        .replace(UNSPEAKABLE, ' ')
+        .split(/\r?\n/)
+        .map(line => line.replace(/[ \t]+/g, ' ').trim())
+        .filter(line => speakable(line))
+        .join('\n')
     }
 
     async function serverReady() {
@@ -120,7 +133,7 @@ window.__ModuleLoader__.load({
     function speakBrowser(text, rate) {
       const synth = synthesis()
       if (!synth || typeof window.SpeechSynthesisUtterance !== 'function') return
-      const parts = chunk(text, 180).filter(part => speakable(part))
+      const parts = chunk(sanitize(text), 180)
       let index = 0
       const next = () => {
         if (index >= parts.length) {
@@ -131,7 +144,7 @@ window.__ModuleLoader__.load({
         utterance.lang = 'zh-CN'
         utterance.rate = rate
         utterance.onend = next
-        utterance.onerror = () => publish({ speaking: false })
+        utterance.onerror = next
         synth.speak(utterance)
       }
       next()
@@ -145,7 +158,7 @@ window.__ModuleLoader__.load({
     }
 
     function partsForStreaming(text) {
-      const parts = chunk(text, MAX_CHUNK)
+      const parts = chunk(sanitize(text), MAX_CHUNK)
       if (parts.length > 0 && parts[0].length > 120) {
         // Speak a short first piece so sound starts before the long one is ready.
         const head = parts[0]
@@ -156,7 +169,7 @@ window.__ModuleLoader__.load({
         }
         if (cut > 0) parts.splice(0, 1, head.slice(0, cut), head.slice(cut))
       }
-      return parts.filter(part => part.trim() !== '' && speakable(part))
+      return parts.filter(part => speakable(part))
     }
 
     function playPrepared(audio, current) {
@@ -187,15 +200,19 @@ window.__ModuleLoader__.load({
         try {
           finished = await playPrepared(audio, current)
         } catch {
-          // One retry, then hand only the remaining pieces to the browser engine.
+          // One retry for a piece that never produced sound, then skip it: the
+          // reader moves on instead of replaying anything already heard.
           try {
             finished = await playPrepared(make(parts[index]), current)
           } catch (error) {
-            current.remaining = parts.slice(index + 1).join('\n')
-            throw error
+            console.warn('[read-aloud] 跳过读不出来的片段', parts[index].slice(0, 40), error)
+            current.audio = null
+            current.cancel = null
+            continue
           }
         }
         if (!finished) return
+        current.spoken = true
         current.audio = null
         current.cancel = null
       }
@@ -203,25 +220,28 @@ window.__ModuleLoader__.load({
 
     async function speak(text, options) {
       stop()
-      if (text === null || text === undefined || String(text).trim() === '') return
-      const current = { cancelled: false, audio: null, cancel: null }
+      const clean = sanitize(text)
+      if (clean.trim() === '') return
+      const current = { cancelled: false, audio: null, cancel: null, spoken: false }
       run = current
       publish({ speaking: true })
       try {
         if (await serverReady()) {
           publish({ engine: 'server' })
-          await speakServer(String(text), options, current)
+          await speakServer(clean, options, current)
         } else {
           console.warn('[read-aloud] 本地语音服务不可用，改用浏览器内置语音')
           publish({ engine: 'browser' })
-          speakBrowser(String(text), options.rate)
+          speakBrowser(clean, options.rate)
+          current.spoken = true
         }
       } catch (error) {
-        if (!current.cancelled) {
-          console.warn('[read-aloud] 神经网络语音失败，改用浏览器内置语音继续朗读余下内容', error)
+        // Never restart a message that already started: only an untouched message
+        // may still fall back, and it falls back once for the whole text.
+        if (!current.cancelled && !current.spoken) {
+          console.warn('[read-aloud] 神经网络语音不可用，改用浏览器内置语音', error)
           publish({ engine: 'browser' })
-          const rest = typeof current.remaining === 'string' ? current.remaining : ''
-          if (rest.trim() !== '') speakBrowser(rest, options.rate)
+          speakBrowser(clean, options.rate)
         }
       } finally {
         if (run === current) {

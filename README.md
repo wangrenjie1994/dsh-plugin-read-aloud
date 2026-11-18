@@ -44,6 +44,7 @@ page → /read-aloud/tts        (same origin, DSH HTTP server)
 ## Limitations
 
 - Reads settled Assistant text, user messages, and reasoning. Streaming text, tool cards, and injected context are not selectable this way.
+- Unreadable content is dropped, never replayed: box-drawing rules, arrows, emoji, symbols and control characters are stripped before synthesis, lines left empty are skipped, and a piece that fails twice is skipped while reading continues. Nothing already heard is ever read again, and the engine never switches mid-message; only a message that has not started yet falls back to the browser voice.
 - "Entire reply" means the host's text-interaction container (`data-text-interaction-source`); when that container holds only one paragraph, only that paragraph is read.
 - File previews in the sidebar cannot be read yet.
 - Non-Chinese text is read too, but the listed voices are Chinese; pick a different voice only by editing `server/tts_server.py`'s `VOICES` list for now.
