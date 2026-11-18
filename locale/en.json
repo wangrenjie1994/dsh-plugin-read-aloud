@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "Read aloud",
-    "description": "Reads selected chat text or a whole reply with Microsoft neural voices (Xiaoxiao, Yunxi, …), with voice and speed switching and browser speech as fallback.",
+    "description": "Read DSH replies aloud with Microsoft neural voices (Xiaoxiao, Yunxi, etc.). Select text or press Shift + right-click to open the panel, then read the selection, from here to the end, or the whole reply, with voice and speed switching; unreadable text is skipped and browser speech covers an unavailable service.",
     "detail": "docs/DETAIL.md"
   }
 }

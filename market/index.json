@@ -16,8 +16,8 @@
         "zh": "朗读"
       },
       "description": {
-        "en": "Read DSH replies aloud with Microsoft neural voices (Xiaoxiao, Yunxi, …) through a local edge-tts service: read the selection, read from here to the end, or read the whole reply, with voice and speed switching and same-origin streaming playback. Unreadable text is skipped instead of replayed, and browser speech takes over when the service is unavailable.",
-        "zh": "用微软神经网络语音（晓晓、云希等）朗读 DSH 的回复：可朗读选中、从当前读到结尾、或整条回复，支持切换音色与语速，同源流式播放；读不出来的内容自动跳过不重读，服务不可用时退回浏览器语音。"
+        "en": "Read DSH replies aloud with Microsoft neural voices (Xiaoxiao, Yunxi, …) through a local edge-tts service: read the selection, read from here to the end, or read the whole reply, with voice and speed switching and same-origin streaming playback. Open the panel by selecting text or pressing Shift + right-click; rules, arrows, emoji and other unreadable characters are skipped, and browser speech covers an unavailable service.",
+        "zh": "用微软神经网络语音（晓晓、云希等）朗读 DSH 的回复：选中文字或按 Shift+右键呼出面板，可朗读选中 / 从当前读到结尾 / 整条回复，支持切换音色与语速、同源流式播放；图表线条、箭头、emoji 等读不出来的字符自动跳过，服务不可用时退回浏览器语音。"
       },
       "icon": "icons/read-aloud.svg",
       "author": "wangrenjie1994",
@@ -27,8 +27,8 @@
       },
       "versions": [
         {
-          "version": "0.2.2",
-          "publishTimestamp": 1794977953,
+          "version": "0.2.3",
+          "publishTimestamp": 1794979839,
           "source": {
             "type": "npm"
           },
@@ -37,8 +37,8 @@
           }
         },
         {
-          "version": "0.2.1",
-          "publishTimestamp": 1794977582,
+          "version": "0.2.2",
+          "publishTimestamp": 1794977953,
           "source": {
             "type": "npm"
           },
