@@ -16,8 +16,8 @@
         "zh": "朗读"
       },
       "description": {
-        "en": "Read DSH replies aloud with Microsoft neural voices (Xiaoxiao, Yunxi, …) through a local edge-tts service; same-origin streaming playback, voice and speed switching, browser speech as fallback.",
-        "zh": "用微软神经网络语音（晓晓、云希等）朗读 DSH 的回复：本地 edge-tts 合成、同源流式播放、可切音色与语速，服务不可用时退回浏览器语音。"
+        "en": "Read DSH replies aloud with Microsoft neural voices (Xiaoxiao, Yunxi, …) through a local edge-tts service: read the selection, read from here to the end, or read the whole reply, with voice and speed switching and same-origin streaming playback. Unreadable text is skipped instead of replayed, and browser speech takes over when the service is unavailable.",
+        "zh": "用微软神经网络语音（晓晓、云希等）朗读 DSH 的回复：可朗读选中、从当前读到结尾、或整条回复，支持切换音色与语速，同源流式播放；读不出来的内容自动跳过不重读，服务不可用时退回浏览器语音。"
       },
       "icon": "icons/read-aloud.svg",
       "author": "wangrenjie1994",
